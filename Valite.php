@@ -81,6 +81,12 @@ function getKey($el){
 	}
 	return $ret;
 }
+function getColor($res, $xy){
+	$xy=explode('&',$xy);
+	$rgb = imagecolorat($res,$xy[0],$xy[1]);
+	$rgbarray = imagecolorsforindex($res, $rgb);
+	return $rgbarray;
+}
 
 class Valite{
 	public function setImage($Image)
@@ -170,14 +176,53 @@ class Valite{
 			$len=count($el);
 			if($len>MAX_WIDTH){
 				// todo 分割
+				$ave=array();
+				$last=array(
+					'red'=>0,
+					'green'=>0,
+					'blue'=>0
+				);
+				$c=0;
+				$part=array();
 				foreach($el as $row){//计算每一行的平均rgb
-					;
+					$c++;
+					$color_ave=array(
+						'red'=>0,
+						'green'=>0,
+						'blue'=>0
+					);
+					$count=0;
 					foreach($row as $cell){
 						if($cell!==0){
-							$
+							$color=getColor($res, $cell);
+							$color_ave['red']+=$color['red'];
+							$color_ave['green']+=$color['green'];
+							$color_ave['blue']+=$color['blue'];
+							$count++;
 						}
 					}
+					$color_ave['red']/=$count;
+					$color_ave['green']/=$count;
+					$color_ave['blue']/=$count;
+					$a=($color_ave['red']-$last['red'])*($color_ave['red']-$last['red'])
+						+($color_ave['green']-$last['green'])*($color_ave['green']-$last['green'])
+						+($color_ave['blue']-$last['blue'])*($color_ave['blue']-$last['blue']);
+
+					if($c===1 || sqrt($a)<60){
+						$part[]=$row;
+					}else{
+						if(count($part)>5) $els_op[]=trans($part);
+						$part=array($row);// 初始化
+					}
+
+					echo $c.': '.sqrt($a).'<br>';
+
+					$ave[]=$last=$color_ave;
 				}
+				var_dump($ave[12]);echo '<br>';
+				var_dump($ave[13]);echo '<br>';
+				var_dump($ave[14]);
+				if(count($part)>5) $els_op[]=trans($part);
 //				echo 'fuck'; exit;
 				
 				// todo 剔除
