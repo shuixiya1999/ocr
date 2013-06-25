@@ -6,11 +6,12 @@ $valite = new Valite();
 
 //$url='haha.png';
 //$url='2.png';
-$url='33.png';
+//$url='apassCodeAction.jpg'; // come on
+//$url='33.png';
 //$url='clear.png';
 //$url='clear_good.png';
-//$url='clear91.png';
-//$url='clear3.png';
+$url='clear92.png';
+//$url='clear7.png';
 //$url='test1.png';
 //$url='study/YPE8.png';
 

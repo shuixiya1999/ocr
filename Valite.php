@@ -68,6 +68,11 @@ function draw($el){
 	$ret.='<br>';
 	echo $ret;
 }
+function drawArr($arr){
+	foreach($arr as $el){
+		draw($el);
+	}
+}
 function getKey($el){
 	$ret='';
 	foreach($el as $row){
@@ -86,6 +91,57 @@ function getColor($res, $xy){
 	$rgb = imagecolorat($res,$xy[0],$xy[1]);
 	$rgbarray = imagecolorsforindex($res, $rgb);
 	return $rgbarray;
+}
+function rgb2hsl($rgb){
+	$rgb=array_values($rgb);
+	// Where RGB values = 0 ÷ 255.
+	$var_R = $rgb[0] / 255;
+	$var_G = $rgb[1] / 255;
+	$var_B = $rgb[2] / 255;
+
+	// Min. value of RGB
+	$var_Min = min($var_R, $var_G, $var_B);
+	// Max. value of RGB
+	$var_Max = max($var_R, $var_G, $var_B);
+	// Delta RGB value
+	$del_Max = $var_Max - $var_Min;
+
+	$L = ($var_Max + $var_Min) / 2;
+
+	if ( $del_Max == 0 ) {
+		// This is a gray, no chroma...
+		// HSL results = 0 ÷ 1
+		$H = 0;
+		$S = 0;
+	} else {
+		// Chromatic data...
+		if ($L < 0.5) {
+			$S = $del_Max / ($var_Max + $var_Min);
+		} else {
+			$S = $del_Max / ( 2 - $var_Max - $var_Min );
+		}
+
+		$del_R = ((($var_Max - $var_R) / 6) + ($del_Max / 2)) / $del_Max;
+		$del_G = ((($var_Max - $var_G) / 6) + ($del_Max / 2)) / $del_Max;
+		$del_B = ((($var_Max - $var_B) / 6) + ($del_Max / 2)) / $del_Max;
+
+		if ($var_R == $var_Max) {
+			$H = $del_B - $del_G;
+		} else if ($var_G == $var_Max) {
+			$H = ( 1 / 3 ) + $del_R - $del_B;
+		} else if ($var_B == $var_Max) {
+			$H = ( 2 / 3 ) + $del_G - $del_R;
+		}
+
+		if ($H < 0) {
+			$H += 1;
+		}
+		if ($H > 1) {
+			$H -= 1;
+		}
+	}
+
+	return array($H, $S, $L);
 }
 
 class Valite{
@@ -177,15 +233,14 @@ class Valite{
 			if($len>MAX_WIDTH){
 				// todo 分割
 				$ave=array();
-				$last=array(
-					'red'=>0,
-					'green'=>0,
-					'blue'=>0
-				);
+				$lastH=0;
+				$sumDeltaH=0;
 				$c=0;
 				$part=array();
+				$i=0;
 				foreach($el as $row){//计算每一行的平均rgb
 					$c++;
+					$i++;
 					$color_ave=array(
 						'red'=>0,
 						'green'=>0,
@@ -204,25 +259,42 @@ class Valite{
 					$color_ave['red']/=$count;
 					$color_ave['green']/=$count;
 					$color_ave['blue']/=$count;
-					$a=($color_ave['red']-$last['red'])*($color_ave['red']-$last['red'])
-						+($color_ave['green']-$last['green'])*($color_ave['green']-$last['green'])
-						+($color_ave['blue']-$last['blue'])*($color_ave['blue']-$last['blue']);
-
-					if($c===1 || sqrt($a)<60){
-						$part[]=$row;
+//					$a=($color_ave['red']-$lastH['red'])*($color_ave['red']-$lastH['red'])				// 这个kpi 太不靠谱
+//						+($color_ave['green']-$lastH['green'])*($color_ave['green']-$lastH['green'])
+//						+($color_ave['blue']-$lastH['blue'])*($color_ave['blue']-$lastH['blue']);
+					$h=rgb2hsl($color_ave);
+					$h=$h[0];
+					echo "$i: h: $h<br>";// just test
+					
+					
+					if($c>4 && abs($h-$lastH)>5*$sumDeltaH/($c-1) ){ // todo define 大5倍, 0.1
+						if(abs($h-$lastH)/$lastH>0.1){
+							$els_op[]=trans($part);
+							$part=array($row);// 初始化
+							$c=0;
+							$sumDeltaH=0;
+						}else{
+							$part[]=$row;
+						}
 					}else{
-						if(count($part)>5) $els_op[]=trans($part);
-						$part=array($row);// 初始化
+						$part[]=$row;
 					}
 
-					echo $c.': '.sqrt($a).'<br>';
+					$ave[]=$color_ave;
 
-					$ave[]=$last=$color_ave;
+					if($c!==1){
+						$sumDeltaH+=abs($h-$lastH);
+
+						// test
+						$x=abs($h-$lastH);
+						$y=$sumDeltaH/($c-1);
+						echo "$i: ".$x/$lastH.'<br>';
+						echo "$i: $x: average: $y<br>";// just test
+					}
+					$lastH=$h;
 				}
-				var_dump($ave[12]);echo '<br>';
-				var_dump($ave[13]);echo '<br>';
-				var_dump($ave[14]);
 				if(count($part)>5) $els_op[]=trans($part);
+
 //				echo 'fuck'; exit;
 				
 				// todo 剔除
@@ -231,6 +303,10 @@ class Valite{
 			}else{
 				$els_op[]=trans($el);
 			}
+		}
+
+		foreach($els_op as $el){
+			draw($el);
 		}
 
 		$this->els = $els;
