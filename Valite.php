@@ -19,6 +19,18 @@ define('STRICT',0);
 define('MAX_WIDTH',17);
 define('MIN_WIDTH',8);
 
+
+function getUrl($path){
+	$ret=array();
+	$d=dir($path);
+	while(($filename=$d->read())!==false){
+		if($filename!=='.' && $filename!=='..'){
+			$ret[]=$filename;
+		}
+	}
+	$d->close();
+	return $ret;
+}
 function trans($arr){
 	$ret=array();
 	if(!isset($arr[0])) return $ret;
@@ -72,6 +84,22 @@ function drawArr($arr){
 	foreach($arr as $el){
 		draw($el);
 	}
+}
+function splitArray($el, $indexs){
+	$ret=array();
+	$e=array();
+	$pos=0;
+	foreach($el as $index => $row){
+		if($indexs[$pos]==$index){
+			$pos++;
+			$ret[]=trans($e);
+			$e=array($row);
+		}else{
+			$e[]=$row;
+		}
+	}
+	$ret[]=trans($e);
+	return $ret;
 }
 function getKey($el){
 	$ret='';
@@ -233,14 +261,9 @@ class Valite{
 			if($len>MAX_WIDTH){
 				// todo 分割
 				$ave=array();
+				$deltas=array();
 				$lastH=0;
-				$sumDeltaH=0;
-				$c=0;
-				$part=array();
-				$i=0;
-				foreach($el as $row){//计算每一行的平均rgb
-					$c++;
-					$i++;
+				foreach($el as $index=>$row){//计算每一行的平均rgb
 					$color_ave=array(
 						'red'=>0,
 						'green'=>0,
@@ -259,41 +282,33 @@ class Valite{
 					$color_ave['red']/=$count;
 					$color_ave['green']/=$count;
 					$color_ave['blue']/=$count;
-//					$a=($color_ave['red']-$lastH['red'])*($color_ave['red']-$lastH['red'])				// 这个kpi 太不靠谱
-//						+($color_ave['green']-$lastH['green'])*($color_ave['green']-$lastH['green'])
-//						+($color_ave['blue']-$lastH['blue'])*($color_ave['blue']-$lastH['blue']);
+
 					$h=rgb2hsl($color_ave);
 					$h=$h[0];
-					echo "$i: h: $h<br>";// just test
-					
-					
-					if($c>4 && abs($h-$lastH)>5*$sumDeltaH/($c-1) ){ // todo define 大5倍, 0.1
-						if(abs($h-$lastH)/$lastH>0.1){
-							$els_op[]=trans($part);
-							$part=array($row);// 初始化
-							$c=0;
-							$sumDeltaH=0;
-						}else{
-							$part[]=$row;
-						}
-					}else{
-						$part[]=$row;
-					}
+//					echo "$index: h: $h <br>";// just test
 
-					$ave[]=$color_ave;
-
-					if($c!==1){
-						$sumDeltaH+=abs($h-$lastH);
-
-						// test
-						$x=abs($h-$lastH);
-						$y=$sumDeltaH/($c-1);
-						echo "$i: ".$x/$lastH.'<br>';
-						echo "$i: $x: average: $y<br>";// just test
+					if($index!==0){
+						$deltas[$index]=abs($h-$lastH);
 					}
 					$lastH=$h;
+				}//foreach
+				arsort($deltas);
+
+				// 这里不精确
+				$num=round($len/13) - 1;
+
+				$indexs=array();
+				$i=0;
+				foreach($deltas as $idx=>$val){
+					if($i == $num){
+						break;
+					}else{
+						$indexs[]=$idx;
+						$i++;
+					}
 				}
-				if(count($part)>5) $els_op[]=trans($part);
+				sort($indexs);
+				$els_op = array_merge($els_op, splitArray($el, $indexs));
 
 //				echo 'fuck'; exit;
 				

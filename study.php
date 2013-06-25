@@ -94,19 +94,6 @@ function study($url, $keys){
 }
 
 
-function getUrl($path){
-	$ret=array();
-	$d=dir($path);
-	while(($filename=$d->read())!==false){
-		if($filename!=='.' && $filename!=='..'){
-			$ret[]=$filename;
-		}
-	}
-	$d->close();
-	return $ret;
-}
-
-
 $url=array(
 	array('clear4.png','H5S7'),
 	array('clear.png','3485'),
